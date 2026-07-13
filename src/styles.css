@@ -181,6 +181,17 @@ html, body {
 }
 .about-list strong { color: var(--text); }
 #view-about a { color: var(--accent); }
+.bmc-link {
+  display: block;
+  margin-top: 10px;
+  padding: 14px;
+  border-radius: var(--radius);
+  background: #ffdd00;
+  color: #0f172a !important;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+}
 
 /* ---- タブバー ---- */
 .tab-bar {

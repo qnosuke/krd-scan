@@ -28,7 +28,7 @@ export async function exportCsv(records) {
   // BOM付きUTF-8（Excel/Numbersでの文字化け防止）
   const csv = '\uFEFF' + toCsv(records);
   const stamp = new Date().toISOString().slice(0, 10);
-  const filename = `karadascan-${stamp}.csv`;
+  const filename = `krd-scan-${stamp}.csv`;
   const file = new File([csv], filename, { type: 'text/csv' });
 
   if (navigator.canShare?.({ files: [file] })) {

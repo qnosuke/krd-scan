@@ -1,6 +1,7 @@
 // IndexedDB ラッパー。1レコード = 1回の測定（日時 + 7項目）。
 // 値は文字列のまま保存する（"62.7" など。未計測は null）。
 
+// 旧アプリ名のまま（変更すると既存の記録が読めなくなるため）
 const DB_NAME = 'karadascan';
 const DB_VERSION = 1;
 const STORE = 'measurements';

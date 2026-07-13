@@ -38,6 +38,8 @@ describe('UI初期化', () => {
     expect(about.hidden).toBe(false);
     expect(about.textContent).toContain('保存・収集していません');
     expect(about.textContent).toContain('トラフィックも見ていません');
+    const bmc = about.querySelector('a.bmc-link');
+    expect(bmc.href).toContain('buymeacoffee.com/qnosuke');
     document.querySelector('.tab[data-view="view-capture"]').click();
   });
 

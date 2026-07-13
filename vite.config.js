@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 // GitHub Pages ではリポジトリ名がパスの先頭に付く
-const BASE = '/karadascan/';
+const BASE = '/krd-scan/';
 
 export default defineConfig(({ command }) => ({
   base: command === 'build' ? BASE : '/',
@@ -11,8 +11,8 @@ export default defineConfig(({ command }) => ({
       registerType: 'autoUpdate',
       includeAssets: ['icons/apple-touch-icon.png'],
       manifest: {
-        name: 'カラダスキャン記録',
-        short_name: 'カラダ記録',
+        name: 'KRD scan',
+        short_name: 'KRD scan',
         description: 'オムロン KRD-203 の測定値をカメラで読み取ってCSV記録',
         lang: 'ja',
         display: 'standalone',
