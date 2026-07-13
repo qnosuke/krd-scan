@@ -41,6 +41,7 @@ views['view-history'] = createHistoryView();
 views['view-import'] = createImportView({
   onDone: (results) => switchView('view-confirm', results),
 });
+views['view-about'] = { show() {}, hide() {} }; // 静的ページ
 
 document.querySelectorAll('.tab').forEach((tab) => {
   tab.addEventListener('click', () => switchView(tab.dataset.view));

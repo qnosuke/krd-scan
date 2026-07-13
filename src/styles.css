@@ -164,6 +164,24 @@ html, body {
 }
 #view-import .capture-status { position: static; margin: 8px 0; text-shadow: none; color: var(--text-dim); }
 
+/* ---- 情報画面 ---- */
+#view-about h3 { font-size: 1rem; margin: 18px 0 6px; color: var(--accent); }
+.about-text { color: var(--text-dim); font-size: 0.9rem; line-height: 1.7; }
+.about-list {
+  list-style: none;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.about-list li {
+  background: var(--panel);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  line-height: 1.7;
+  color: var(--text-dim);
+}
+.about-list strong { color: var(--text); }
+#view-about a { color: var(--accent); }
+
 /* ---- タブバー ---- */
 .tab-bar {
   position: fixed;

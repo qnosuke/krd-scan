@@ -70,6 +70,45 @@
       </div>
     </section>
 
+    <!-- 情報・プライバシー画面 -->
+    <section id="view-about" class="view" hidden>
+      <h2>このアプリについて</h2>
+      <p class="about-text">
+        オムロン体組成計 カラダスキャン KRD-203 の測定値をカメラで読み取り、
+        記録・CSV書き出しするための個人開発アプリです。
+      </p>
+
+      <h3>プライバシー</h3>
+      <ul class="about-list">
+        <li><strong>測定データを開発者は一切保存・収集していません。</strong>
+          データはすべてお使いの端末の中（ブラウザの保存領域）にのみ保存されます。
+          開発者側にはサーバーそのものが存在せず、データの送信先がありません。</li>
+        <li><strong>カメラ映像も端末内でのみ処理</strong>され、外部に送信されません。</li>
+        <li><strong>アクセス解析・トラッキング・Cookie・広告は一切ありません。</strong>
+          開発者は利用状況もトラフィックも見ていません（見る仕組み自体を入れていません）。</li>
+        <li>本アプリは静的ファイルとして GitHub Pages から配信されています。
+          配信インフラとしてのアクセス記録の扱いは
+          <a href="https://docs.github.com/ja/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">GitHubのプライバシーステートメント</a>
+          に従います（開発者に個別のアクセス情報は提供されません）。</li>
+        <li>ソースコードは
+          <a href="https://github.com/qnosuke/karadascan" target="_blank" rel="noopener">GitHubですべて公開</a>
+          されており、上記を誰でも検証できます。</li>
+      </ul>
+
+      <h3>データの保存場所と注意</h3>
+      <ul class="about-list">
+        <li>記録はブラウザ（Safari等）のサイトデータとして保存されるため、
+          サイトデータを削除すると記録も消えます。</li>
+        <li>大切な記録は「履歴」タブから定期的にCSVで書き出して保管してください。</li>
+      </ul>
+
+      <h3>免責</h3>
+      <p class="about-text">
+        読み取り結果には誤りが含まれる可能性があります。保存前に確認画面で必ずご確認ください。
+        本アプリはオムロン ヘルスケア株式会社とは無関係の非公式ツールです。
+      </p>
+    </section>
+
   </main>
 
   <!-- 下部ナビゲーション -->
@@ -77,6 +116,7 @@
     <button class="tab active" data-view="view-capture">計測</button>
     <button class="tab" data-view="view-history">履歴</button>
     <button class="tab" data-view="view-import">取り込み</button>
+    <button class="tab" data-view="view-about">情報</button>
   </nav>
 
   <script type="module" src="/src/main.js"></script>

@@ -32,6 +32,15 @@ describe('UI初期化', () => {
     expect(status).toContain('カメラ');
   });
 
+  it('情報タブにプライバシー方針が表示される', () => {
+    document.querySelector('.tab[data-view="view-about"]').click();
+    const about = document.getElementById('view-about');
+    expect(about.hidden).toBe(false);
+    expect(about.textContent).toContain('保存・収集していません');
+    expect(about.textContent).toContain('トラフィックも見ていません');
+    document.querySelector('.tab[data-view="view-capture"]').click();
+  });
+
   it('取り込みタブに切り替えられる', () => {
     document.querySelector('.tab[data-view="view-import"]').click();
     expect(document.getElementById('view-import').hidden).toBe(false);
