@@ -1,0 +1,19 @@
+{
+  "name": "karadascan",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "オムロン カラダスキャン KRD-203 の測定値をカメラで読み取ってCSV記録するPWA",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "vite": "^6.3.5",
+    "vite-plugin-pwa": "^1.0.0",
+    "vitest": "^3.2.4"
+  }
+}

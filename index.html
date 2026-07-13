@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="カラダ記録" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <title>カラダスキャン記録</title>
+  <link rel="stylesheet" href="/src/styles.css" />
+</head>
+<body>
+  <main id="app">
+
+    <!-- 計測画面 -->
+    <section id="view-capture" class="view">
+      <div class="camera-wrap">
+        <video id="camera-video" autoplay playsinline muted></video>
+        <div class="guide-frame" id="guide-frame">
+          <p class="guide-hint">体組成計の数字をこの枠に合わせてください</p>
+        </div>
+        <p id="capture-status" class="capture-status">カメラ起動中…</p>
+      </div>
+      <div class="metric-chips" id="metric-chips"></div>
+      <div class="capture-actions">
+        <button id="btn-capture-start" class="btn primary">読み取り開始</button>
+        <button id="btn-capture-finish" class="btn" hidden>ここで終了して確認</button>
+      </div>
+    </section>
+
+    <!-- 確認・修正画面 -->
+    <section id="view-confirm" class="view" hidden>
+      <h2>測定結果の確認</h2>
+      <p class="note">読み間違いがないか確認してください。タップで修正できます。</p>
+      <div id="confirm-list" class="confirm-list"></div>
+      <div class="confirm-actions">
+        <button id="btn-save" class="btn primary">保存する</button>
+        <button id="btn-discard" class="btn danger-text">破棄する</button>
+      </div>
+    </section>
+
+    <!-- 履歴画面 -->
+    <section id="view-history" class="view" hidden>
+      <h2>記録の履歴</h2>
+      <div class="history-actions">
+        <button id="btn-export-csv" class="btn primary">CSVを書き出す</button>
+      </div>
+      <div id="history-list" class="history-list"></div>
+    </section>
+
+    <!-- 取り込み画面（動画・写真から） -->
+    <section id="view-import" class="view" hidden>
+      <h2>動画・写真から取り込み</h2>
+      <p class="note">計測中の液晶を撮影した動画や写真から数値を読み取ります。</p>
+      <label class="file-drop">
+        <input type="file" id="import-file" accept="video/*,image/*" />
+        <span>動画または写真を選択</span>
+      </label>
+      <div class="import-preview">
+        <video id="import-video" controls playsinline muted hidden></video>
+        <canvas id="import-canvas" hidden></canvas>
+      </div>
+      <p id="import-status" class="capture-status"></p>
+      <div class="metric-chips" id="import-chips"></div>
+      <div class="capture-actions">
+        <button id="btn-import-run" class="btn primary" hidden>読み取り実行</button>
+        <button id="btn-import-confirm" class="btn" hidden>結果を確認</button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 下部ナビゲーション -->
+  <nav class="tab-bar">
+    <button class="tab active" data-view="view-capture">計測</button>
+    <button class="tab" data-view="view-history">履歴</button>
+    <button class="tab" data-view="view-import">取り込み</button>
+  </nav>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
