@@ -140,15 +140,21 @@ const width = (c) => c.x1 - c.x0 + 1;
  * 1つの矩形にまとめる。点線(横並び)やコロン(隙間が大きい)は結合されない。
  */
 export function mergeSplitComponents(comps) {
-  const merged = [...comps];
+  // y0昇順に並べてスイープする。マージのたびに全ペアを見直すと
+  // ブレたフレーム（成分3000個超）でO(n³)になり動画取り込みが固まるため、
+  // 各成分は自分よりy0が下で隙間が届く範囲の相手だけを見る。
+  const merged = [...comps].sort((a, b) => a.y0 - b.y0);
   let changed = true;
   while (changed) {
     changed = false;
-    outer: for (let i = 0; i < merged.length; i++) {
-      for (let j = 0; j < merged.length; j++) {
-        if (i === j) continue;
+    let maxH = 0;
+    for (const c of merged) maxH = Math.max(maxH, height(c));
+    for (let i = 0; i < merged.length; i++) {
+      for (let j = i + 1; j < merged.length; j++) {
         const a = merged[i];
         const b = merged[j];
+        // y0昇順なのでこれ以降のbはさらに遠く、隙間条件を満たせない
+        if (b.y0 - a.y1 - 1 > (height(a) + maxH) * 0.1) break;
         if (a.y0 >= b.y0 || a.y1 >= b.y1) continue; // a が上、b が下のペアだけ見る
         const gap = b.y0 - a.y1 - 1;
         // 隙間はごく小さいこと。「2」の上フックと下フックのように
@@ -166,7 +172,7 @@ export function mergeSplitComponents(comps) {
         };
         merged.splice(j, 1);
         changed = true;
-        break outer;
+        j = i; // 伸びた a に対して続きから相手を探し直す（y0順は保たれる）
       }
     }
   }
@@ -187,9 +193,11 @@ function digitClusters(comps, imgW, imgH) {
   // 各候補を一度ずつシードにする。「使用済み」で候補を消し込むと、
   // 背の高い影のクラスタに吸われた桁が二度とクラスタを作れなくなるため、
   // 重複した組だけ除いて全部読み、スコアの良いものを採用する。
+  // シードは背の高い順に上限まで: 主数字は常に最大級の成分であり、
+  // ブレたフレームの無数の細かい成分まで試すと処理時間が爆発する。
   const clusters = [];
   const seen = new Set();
-  for (const seed of candidates) {
+  for (const seed of candidates.slice(0, 60)) {
     const seedH = height(seed);
     const members = candidates.filter((c) => {
       const ch = height(c);

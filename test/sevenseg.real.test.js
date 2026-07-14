@@ -27,4 +27,14 @@ describe('実機フレームの読み取り', () => {
     // コロンを小数点扱いすると 427 が基礎代謝(385-3999)に誤割当てされるため
     expect(recognizeGray(loadGrayFixture('real_t2.gray.gz')).text).toBeNull();
   });
+
+  it('カメラブレのノイズフレーム(1080p)でも処理時間が爆発しない', () => {
+    // t=6.15s のブレたフレームは二値化で成分が3000個超になり、
+    // マージ・クラスタ処理がO(n³)だと1フレーム18秒かかって
+    // 動画取り込みが止まったように見える（実機で発生した不具合）
+    const gray = loadGrayFixture('real_t6noise_1080.gray.gz', 1920, 1080);
+    const t0 = performance.now();
+    recognizeGray(gray); // 読めなくてよい（nullで構わない）。固まらないことが要件
+    expect(performance.now() - t0).toBeLessThan(1500);
+  });
 });
