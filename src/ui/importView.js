@@ -1,4 +1,4 @@
-import { METRICS } from '../metrics.js';
+import { METRICS, matchesMetric } from '../metrics.js';
 import { CaptureSession } from '../session.js';
 import { recognizeFrame } from '../sevenseg.js';
 
@@ -59,10 +59,11 @@ export function createImportView({ onDone }) {
       const img = frameImageData();
       if (!img) continue;
       const { text } = recognizeFrame(img);
-      const { captured, complete } = session.feed(text);
+      const { captured } = session.feed(text);
       if (captured) renderChips(session.getResults());
       statusEl.textContent = `解析中… ${Math.round((t / duration) * 100)}%`;
-      if (complete) break;
+      // 7項目そろっても最後まで処理する: 表示周回が繰り返されるので
+      // 票を集めるほど多数決（誤読の上書き）が効く
     }
     running = false;
     results = session.getResults();
@@ -79,11 +80,11 @@ export function createImportView({ onDone }) {
     const ctx = canvasEl.getContext('2d', { willReadFrequently: true });
     ctx.drawImage(bitmap, 0, 0);
     const img = ctx.getImageData(0, 0, bitmap.width, bitmap.height);
-    // 静止画は1項目分しか写らないので、読めた値を順序ルールで割り当てる
-    const session = new CaptureSession({ stableFrames: 1 });
+    // 静止画は1項目分しか写らないので、レンジ・小数桁が合う最初の項目に割り当てる
+    // （セッションの体重アンカーは使わない: 周回がないので回収できない）
     const { text } = recognizeFrame(img);
-    session.feed(text);
-    results = session.getResults();
+    const metric = text ? METRICS.find((m) => matchesMetric(text, m)) : null;
+    results = metric ? { [metric.key]: text } : {};
     const n = Object.keys(results).length;
     statusEl.textContent =
       n > 0 ? `「${text}」を読み取りました（項目は確認画面で修正できます）` : '数値を読み取れませんでした';

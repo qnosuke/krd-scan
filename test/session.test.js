@@ -74,9 +74,56 @@ describe('CaptureSession', () => {
     expect(feedStable(s, '62.7')).toBe('weight');
   });
 
-  it('整数値は体重として誤割当されない（体重は小数1桁必須）', () => {
+  it('体重（周回の先頭）を読むまでは他の項目を割り当てない', () => {
+    // 測定前画面のユーザー番号「1」や生年月日の断片「27」を
+    // 内臓脂肪や体年齢に誤割当てしないため。表示周回は繰り返される
+    // ので、体重より前に見えた項目は次の周回で回収できる。
     const s = new CaptureSession({ stableFrames: 3 });
-    // 途中（内臓脂肪レベル）からかざした場合
+    expect(feedStable(s, '27')).toBeNull(); // 生年月日画面の断片
+    expect(feedStable(s, '4')).toBeNull(); // 途中からかざした内臓脂肪レベル
+    expect(s.capturedCount()).toBe(0);
+    expect(feedStable(s, '62.7')).toBe('weight');
     expect(feedStable(s, '4')).toBe('visceralFat');
+  });
+
+  it('「1」はユーザー番号画面や影の誤読が多いため無視される', () => {
+    const s = new CaptureSession({ stableFrames: 3 });
+    feedStable(s, '62.7');
+    feedStable(s, '15.8');
+    expect(feedStable(s, '1')).toBeNull();
+    expect(s.getResults().visceralFat).toBeUndefined();
+  });
+
+  it('周回の先頭（体重形式）で再アンカーして2周目以降も読める', () => {
+    const s = new CaptureSession({ stableFrames: 3 });
+    // 1周目: 体重と体脂肪率だけ読めた
+    feedStable(s, '62.7');
+    feedStable(s, '15.8');
+    // 2周目: 体重で再アンカー → 1周目で読み逃した後続項目を回収
+    expect(feedStable(s, '62.7')).toBe('weight');
+    expect(feedStable(s, '15.8')).toBe('bodyFat');
+    expect(feedStable(s, '4')).toBe('visceralFat');
+    expect(feedStable(s, '39.9')).toBe('skeletalMuscle');
+    expect(s.getResults()).toMatchObject({
+      weight: '62.7',
+      bodyFat: '15.8',
+      visceralFat: '4',
+      skeletalMuscle: '39.9',
+    });
+  });
+
+  it('誤読の票は複数周回の多数決で上書きされる', () => {
+    const s = new CaptureSession({ stableFrames: 3 });
+    // 1周目: 体重を読み逃し、体脂肪率画面が体重としてアンカーされてしまう
+    feedStable(s, '15.8');
+    feedStable(s, '4');
+    // 2周目・3周目: 正しく読めた → 62.7×2票 > 15.8×1票
+    for (let i = 0; i < 2; i++) {
+      feedStable(s, '62.7');
+      feedStable(s, '15.8');
+      feedStable(s, '4');
+    }
+    expect(s.getResults().weight).toBe('62.7');
+    expect(s.getResults().bodyFat).toBe('15.8');
   });
 });
