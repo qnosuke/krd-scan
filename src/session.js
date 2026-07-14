@@ -57,6 +57,16 @@ export class CaptureSession {
     if (text === this.lastConfirmedText) return null; // 同じ表示が続いているだけ
     this.lastConfirmedText = text;
 
+    // 体重の現最多票と同じ値は、常に新しい周回の先頭とみなす。
+    // 周回先頭の体重表示はBMI(2.5〜90・小数1桁)等のレンジにも合致するため、
+    // 期待位置ベースの割り当てに任せると他項目へ誤投票してしまう。
+    // 票は加えない: 誤アンカーされた値が最多票のとき、このルールが
+    // その票を自己増幅すると後続周回の正しい体重が追い付けなくなる。
+    if (text === this.#majority('weight')) {
+      this.expectedIndex = 1;
+      return 'weight';
+    }
+
     // アンカー後: 表示順に沿って期待位置から先を探す
     if (this.expectedIndex > 0) {
       for (let i = this.expectedIndex; i < METRICS.length; i++) {
@@ -87,6 +97,19 @@ export class CaptureSession {
     counts.set(text, (counts.get(text) ?? 0) + 1);
   }
 
+  /** 項目の現時点の最多票の値（票がなければ null） */
+  #majority(key) {
+    let best = null;
+    let bestCount = 0;
+    for (const [text, count] of this.votes[key] ?? []) {
+      if (count > bestCount) {
+        best = text;
+        bestCount = count;
+      }
+    }
+    return best;
+  }
+
   isComplete() {
     return Object.keys(this.votes).length >= METRICS.length;
   }
@@ -94,16 +117,8 @@ export class CaptureSession {
   /** これまでの結果 { key: text }。項目ごとに最多票の値を返す */
   getResults() {
     const results = {};
-    for (const [key, counts] of Object.entries(this.votes)) {
-      let best = null;
-      let bestCount = 0;
-      for (const [text, count] of counts) {
-        if (count > bestCount) {
-          best = text;
-          bestCount = count;
-        }
-      }
-      results[key] = best;
+    for (const key of Object.keys(this.votes)) {
+      results[key] = this.#majority(key);
     }
     return results;
   }

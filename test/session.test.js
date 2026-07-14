@@ -112,6 +112,29 @@ describe('CaptureSession', () => {
     });
   });
 
+  it('確定済みの体重と同じ値は周回の先頭とみなしBMIに割り当てない', () => {
+    // 周回先頭の体重表示はBMI(2.5〜90・小数1桁)のレンジにも合致するため、
+    // BMI画面を読み逃した次の周回頭でBMIに誤投票されやすい
+    const s = new CaptureSession({ stableFrames: 3 });
+    feedStable(s, '62.7');
+    feedStable(s, '15.8');
+    feedStable(s, '4');
+    feedStable(s, '39.9');
+    feedStable(s, '22');
+    feedStable(s, '1545');
+    // BMI画面は読み逃し → 2周目の体重が来る
+    expect(feedStable(s, '62.7')).toBe('weight');
+    expect(s.getResults().bmi).toBeUndefined();
+    // 2周目は続きから正しく読める
+    expect(feedStable(s, '15.8')).toBe('bodyFat');
+  });
+
+  it('体重と異なる値ならBMIとして正しく割り当てられる', () => {
+    const s = new CaptureSession({ stableFrames: 3 });
+    for (const [text] of FULL_SEQUENCE) feedStable(s, text);
+    expect(s.getResults().bmi).toBe('20.2');
+  });
+
   it('誤読の票は複数周回の多数決で上書きされる', () => {
     const s = new CaptureSession({ stableFrames: 3 });
     // 1周目: 体重を読み逃し、体脂肪率画面が体重としてアンカーされてしまう
