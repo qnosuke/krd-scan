@@ -27,6 +27,7 @@ export class CaptureSession {
     this.candidateText = null;
     this.candidateCount = 0;
     this.lastConfirmedText = null;
+    this.lastConfirmedKey = null; // 直前の確定が票を入れた項目（追加票の宛先）
   }
 
   /**
@@ -47,24 +48,39 @@ export class CaptureSession {
       this.candidateCount = 1;
     }
     let captured = null;
-    if (this.candidateCount === this.stableFrames) {
+    // stableFrames 回続くごとに確定を繰り返す: 表示され続ける時間に
+    // 比例して票が重くなり、画面切り替わりのブレによる瞬間的な誤読
+    // （3フレーム程度しか続かない）を本物の値が多数決で上書きできる
+    if (this.candidateCount >= this.stableFrames && this.candidateCount % this.stableFrames === 0) {
       captured = this.#confirm(text);
     }
     return { captured, complete: this.isComplete() };
   }
 
   #confirm(text) {
-    if (text === this.lastConfirmedText) return null; // 同じ表示が続いているだけ
+    if (text === this.lastConfirmedText) {
+      // 同じ画面が表示され続けている: 割り当ては変えず追加票だけ入れる
+      if (this.lastConfirmedKey) this.#vote(this.lastConfirmedKey, text);
+      return null;
+    }
     this.lastConfirmedText = text;
+    this.lastConfirmedKey = null;
 
-    // 体重の現最多票と同じ値は、常に新しい周回の先頭とみなす。
-    // 周回先頭の体重表示はBMI(2.5〜90・小数1桁)等のレンジにも合致するため、
-    // 期待位置ベースの割り当てに任せると他項目へ誤投票してしまう。
-    // 票は加えない: 誤アンカーされた値が最多票のとき、このルールが
-    // その票を自己増幅すると後続周回の正しい体重が追い付けなくなる。
-    if (text === this.#majority('weight')) {
-      this.expectedIndex = 1;
-      return 'weight';
+    // どれかの項目の現最多票と同じ値は「その画面の再表示」とみなし、
+    // 票を加えず周回位置だけ合わせ直す。BMIや体重はレンジが広く他項目の
+    // 値も飲み込むため、期待位置ベースの割り当てに任せると
+    // 周回頭の体重や読み逃し後の骨格筋率がBMIに、本物のBMIが体重に化ける。
+    // 票を加えないのは、誤アンカーされた値が最多票のとき自己増幅して
+    // 後続周回の正しい値が多数決で追い付けなくなるのを防ぐため。
+    // 複数項目と一致する場合は期待位置以降を優先（周回は前へ進む）。
+    const seen = [];
+    for (let i = 0; i < METRICS.length; i++) {
+      if (this.#majority(METRICS[i].key) === text) seen.push(i);
+    }
+    if (seen.length > 0) {
+      const i = seen.find((k) => k >= this.expectedIndex) ?? seen[0];
+      this.expectedIndex = i + 1;
+      return METRICS[i].key;
     }
 
     // アンカー後: 表示順に沿って期待位置から先を探す
@@ -78,6 +94,7 @@ export class CaptureSession {
         if (metric.key === 'bmi' && i > this.expectedIndex && this.expectedIndex < 5) break;
         if (matchesMetric(text, metric)) {
           this.#vote(metric.key, text);
+          this.lastConfirmedKey = metric.key;
           this.expectedIndex = i + 1;
           return metric.key;
         }
@@ -86,6 +103,7 @@ export class CaptureSession {
     // 体重形式なら（新しい）表示周回の先頭とみなしてアンカーする
     if (matchesMetric(text, METRICS[0])) {
       this.#vote(METRICS[0].key, text);
+      this.lastConfirmedKey = METRICS[0].key;
       this.expectedIndex = 1;
       return METRICS[0].key;
     }

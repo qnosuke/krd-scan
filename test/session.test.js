@@ -135,6 +135,35 @@ describe('CaptureSession', () => {
     expect(s.getResults().bmi).toBe('20.2');
   });
 
+  it('確定済みの骨格筋率と同じ値をBMIに割り当てない', () => {
+    // BMI(2.5〜90・小数1桁)は骨格筋率の値も飲み込める。BMI画面を
+    // 読み逃したまま2周目の骨格筋率が先に確定するケースで誤投票しない
+    const s = new CaptureSession({ stableFrames: 3 });
+    feedStable(s, '62.7');
+    feedStable(s, '15.8');
+    feedStable(s, '4');
+    feedStable(s, '39.9');
+    feedStable(s, '22');
+    feedStable(s, '1545');
+    // BMI・2周目の体重〜内臓脂肪を読み逃し、骨格筋率が先に確定
+    expect(feedStable(s, '39.9')).toBe('skeletalMuscle');
+    expect(s.getResults().bmi).toBeUndefined();
+    // 周回位置が合い直っているので続きも正しく読める
+    expect(feedStable(s, '22')).toBe('bodyAge');
+    expect(feedStable(s, '1545')).toBe('basalMetabolism');
+    expect(feedStable(s, '20.2')).toBe('bmi');
+  });
+
+  it('長く表示され続けた値は票が重く、瞬間的な誤読を上書きする', () => {
+    // 画面切り替わりのブレで「4.2」(64.2の先頭欠け)が3フレームだけ
+    // 続いて誤確定しても、本物の値は1画面あたり長く表示され続けるので
+    // 追加票が入り多数決で勝つ
+    const s = new CaptureSession({ stableFrames: 3 });
+    for (let i = 0; i < 3; i++) s.feed('4.2');
+    for (let i = 0; i < 6; i++) s.feed('64.2');
+    expect(s.getResults().weight).toBe('64.2');
+  });
+
   it('誤読の票は複数周回の多数決で上書きされる', () => {
     const s = new CaptureSession({ stableFrames: 3 });
     // 1周目: 体重を読み逃し、体脂肪率画面が体重としてアンカーされてしまう
