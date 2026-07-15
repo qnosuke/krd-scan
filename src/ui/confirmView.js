@@ -1,5 +1,6 @@
 import { METRICS, validateInput } from '../metrics.js';
-import { addMeasurement } from '../db.js';
+import { addMeasurement, listMeasurements } from '../db.js';
+import { previousValue } from '../trend.js';
 
 export function createConfirmView({ onSaved, onDiscarded }) {
   const listEl = document.getElementById('confirm-list');
@@ -8,16 +9,36 @@ export function createConfirmView({ onSaved, onDiscarded }) {
 
   let inputs = {}; // key → input要素
 
-  function render(results) {
+  async function render(results) {
+    // 前回値: 誤読チェックにも効く（前回と大きく違う値は読み間違いの可能性）
+    const prev = {};
+    try {
+      const records = await listMeasurements();
+      for (const m of METRICS) prev[m.key] = previousValue(records, m.key);
+    } catch {
+      // 前回値が取れなくても確認画面自体は出す
+    }
+
     listEl.innerHTML = '';
     inputs = {};
     for (const m of METRICS) {
       const row = document.createElement('div');
       row.className = 'confirm-row' + (results[m.key] ? '' : ' missing');
 
+      const labelWrap = document.createElement('div');
+      labelWrap.className = 'label-wrap';
+
       const label = document.createElement('span');
       label.className = 'label';
       label.textContent = m.label;
+      labelWrap.appendChild(label);
+
+      if (prev[m.key] != null) {
+        const prevEl = document.createElement('span');
+        prevEl.className = 'prev';
+        prevEl.textContent = `前回 ${prev[m.key].toFixed(m.decimals)}`;
+        labelWrap.appendChild(prevEl);
+      }
 
       const input = document.createElement('input');
       input.type = 'text';
@@ -32,7 +53,7 @@ export function createConfirmView({ onSaved, onDiscarded }) {
       unit.className = 'unit';
       unit.textContent = m.unit;
 
-      row.append(label, input, unit);
+      row.append(labelWrap, input, unit);
       listEl.appendChild(row);
       inputs[m.key] = input;
     }
