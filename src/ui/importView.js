@@ -112,6 +112,8 @@ export function createImportView({ onDone }) {
     videoEl.pause();
     running = false;
     results = session.getResults();
+    // 整列し直しで途中表示から割り当てが変わることがあるので最終状態を反映
+    renderChips(results);
     const n = Object.keys(results).length;
     statusEl.textContent = n > 0 ? `${n}項目を読み取りました` : '数値を読み取れませんでした。液晶が大きく鮮明に写っているか確認してください';
     btnConfirm.hidden = n === 0;

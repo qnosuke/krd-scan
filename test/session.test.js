@@ -74,16 +74,43 @@ describe('CaptureSession', () => {
     expect(feedStable(s, '62.7')).toBe('weight');
   });
 
-  it('体重（周回の先頭）を読むまでは他の項目を割り当てない', () => {
-    // 測定前画面のユーザー番号「1」や生年月日の断片「27」を
-    // 内臓脂肪や体年齢に誤割当てしないため。表示周回は繰り返される
-    // ので、体重より前に見えた項目は次の周回で回収できる。
+  it('小数付きの測定値を読むまでは整数を割り当てない', () => {
+    // 測定前画面のユーザー番号「1」や生年月日の断片「27」は整数のみ。
+    // 小数付きの測定値（体重・体脂肪率など）を見るまで整数は無視する。
+    // 表示周回は繰り返されるので、無視した項目は次の周回で回収できる。
     const s = new CaptureSession({ stableFrames: 3 });
     expect(feedStable(s, '27')).toBeNull(); // 生年月日画面の断片
     expect(feedStable(s, '4')).toBeNull(); // 途中からかざした内臓脂肪レベル
     expect(s.capturedCount()).toBe(0);
     expect(feedStable(s, '62.7')).toBe('weight');
     expect(feedStable(s, '4')).toBe('visceralFat');
+  });
+
+  it('周回の途中（体脂肪率）から読み始めても全項目正しく割り当てる', () => {
+    // 体脂肪率15.8は体重のレンジにも合致するが、後続の並び
+    // （内臓脂肪→骨格筋率→…）と2周目の整合から体脂肪率だと分かる
+    const s = new CaptureSession({ stableFrames: 3 });
+    const midCycle = ['15.8', '4', '39.9', '22', '1545', '20.2'];
+    for (const text of midCycle) feedStable(s, text);
+    for (const [text] of FULL_SEQUENCE) feedStable(s, text);
+    expect(s.getResults()).toEqual({
+      weight: '62.7',
+      bodyFat: '15.8',
+      visceralFat: '4',
+      skeletalMuscle: '39.9',
+      bodyAge: '22',
+      basalMetabolism: '1545',
+      bmi: '20.2',
+    });
+  });
+
+  it('周回の途中（骨格筋率）から読み始めても骨格筋率を体重にしない', () => {
+    const s = new CaptureSession({ stableFrames: 3 });
+    for (const text of ['39.9', '22', '1545', '20.2']) feedStable(s, text);
+    for (const [text] of FULL_SEQUENCE) feedStable(s, text);
+    expect(s.getResults().weight).toBe('62.7');
+    expect(s.getResults().skeletalMuscle).toBe('39.9');
+    expect(s.getResults().bmi).toBe('20.2');
   });
 
   it('「1」はユーザー番号画面や影の誤読が多いため無視される', () => {
@@ -94,22 +121,24 @@ describe('CaptureSession', () => {
     expect(s.getResults().visceralFat).toBeUndefined();
   });
 
-  it('周回の先頭（体重形式）で再アンカーして2周目以降も読める', () => {
+  it('周回の先頭（体重形式）で位置が合い直り2周目以降も読める', () => {
     const s = new CaptureSession({ stableFrames: 3 });
     // 1周目: 体重と体脂肪率だけ読めた
     feedStable(s, '62.7');
     feedStable(s, '15.8');
-    // 2周目: 体重で再アンカー → 1周目で読み逃した後続項目を回収
-    expect(feedStable(s, '62.7')).toBe('weight');
-    expect(feedStable(s, '15.8')).toBe('bodyFat');
-    expect(feedStable(s, '4')).toBe('visceralFat');
-    expect(feedStable(s, '39.9')).toBe('skeletalMuscle');
+    // 2周目: 1周目で読み逃した後続項目を回収。62.7の再登場は一時的に
+    // BMIと解釈されることがあるが、後続の並びで整列し直されて修正される
+    feedStable(s, '62.7');
+    feedStable(s, '15.8');
+    feedStable(s, '4');
+    feedStable(s, '39.9');
     expect(s.getResults()).toMatchObject({
       weight: '62.7',
       bodyFat: '15.8',
       visceralFat: '4',
       skeletalMuscle: '39.9',
     });
+    expect(s.getResults().bmi).toBeUndefined();
   });
 
   it('確定済みの体重と同じ値は周回の先頭とみなしBMIに割り当てない', () => {
@@ -137,7 +166,8 @@ describe('CaptureSession', () => {
 
   it('確定済みの骨格筋率と同じ値をBMIに割り当てない', () => {
     // BMI(2.5〜90・小数1桁)は骨格筋率の値も飲み込める。BMI画面を
-    // 読み逃したまま2周目の骨格筋率が先に確定するケースで誤投票しない
+    // 読み逃したまま2周目の骨格筋率が先に確定するケース。直後は一時的に
+    // BMIと解釈されることがあるが、後続の並びで整列し直されて修正される
     const s = new CaptureSession({ stableFrames: 3 });
     feedStable(s, '62.7');
     feedStable(s, '15.8');
@@ -146,12 +176,16 @@ describe('CaptureSession', () => {
     feedStable(s, '22');
     feedStable(s, '1545');
     // BMI・2周目の体重〜内臓脂肪を読み逃し、骨格筋率が先に確定
-    expect(feedStable(s, '39.9')).toBe('skeletalMuscle');
-    expect(s.getResults().bmi).toBeUndefined();
-    // 周回位置が合い直っているので続きも正しく読める
-    expect(feedStable(s, '22')).toBe('bodyAge');
-    expect(feedStable(s, '1545')).toBe('basalMetabolism');
-    expect(feedStable(s, '20.2')).toBe('bmi');
+    feedStable(s, '39.9');
+    feedStable(s, '22');
+    feedStable(s, '1545');
+    feedStable(s, '20.2');
+    expect(s.getResults()).toMatchObject({
+      skeletalMuscle: '39.9',
+      bodyAge: '22',
+      basalMetabolism: '1545',
+      bmi: '20.2',
+    });
   });
 
   it('長く表示され続けた値は票が重く、瞬間的な誤読を上書きする', () => {
