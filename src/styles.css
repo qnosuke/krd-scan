@@ -1,13 +1,17 @@
 :root {
-  --bg: #0f172a;
-  --panel: #1e293b;
-  --panel-2: #334155;
-  --text: #f1f5f9;
-  --text-dim: #94a3b8;
-  --accent: #38bdf8;
-  --accent-dark: #0284c7;
-  --ok: #4ade80;
-  --danger: #f87171;
+  --bg: #f3f2ee;          /* 実機の白ボディをイメージした暖かみのある薄グレー */
+  --panel: #ffffff;
+  --panel-2: #e4e2da;     /* 枠線・区切り・グラフのグリッド線 */
+  --text: #2c3136;
+  --text-dim: #6d7378;
+  --accent: #2f8f83;      /* 落ち着いた青緑。グラフの線・枠線類 */
+  --accent-dark: #23756b; /* ボタン・アクティブ表示（白文字が載る） */
+  --ok: #3d8b57;
+  --danger: #c94f46;
+  --lcd-bg: #e3e9d9;      /* 液晶風の淡いグレーグリーン */
+  --lcd-border: #c9d3bd;
+  --lcd-text: #2f4433;    /* 液晶の濃い文字色 */
+  --shadow: 0 1px 3px rgba(70, 74, 66, 0.1);
   --radius: 14px;
 }
 
@@ -45,7 +49,7 @@ html, body {
   position: absolute;
   left: 10%; right: 10%;
   top: 32%; height: 24%;
-  border: 3px solid var(--accent);
+  border: 3px solid #ffc94d; /* 暗い映像の上でも見えるよう琥珀色 */
   border-radius: 10px;
   box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.35);
   display: flex; align-items: flex-end; justify-content: center;
@@ -74,12 +78,21 @@ html, body {
   background: var(--panel);
   color: var(--text-dim);
   font-size: 0.8rem;
+  font-family: inherit;
   border: 1px solid var(--panel-2);
 }
 .chip.done {
-  background: rgba(74, 222, 128, 0.15);
-  color: var(--ok);
-  border-color: var(--ok);
+  background: var(--lcd-bg);
+  color: var(--lcd-text);
+  border-color: var(--lcd-border);
+  font-variant-numeric: tabular-nums;
+}
+button.chip { cursor: pointer; }
+.chip.selected {
+  background: var(--accent-dark);
+  border-color: var(--accent-dark);
+  color: #fff;
+  font-weight: 600;
 }
 
 .capture-actions, .confirm-actions, .history-actions {
@@ -96,13 +109,15 @@ html, body {
   padding: 14px;
   border-radius: var(--radius);
   cursor: pointer;
+  box-shadow: var(--shadow);
 }
 .btn.primary {
   background: var(--accent-dark);
   border-color: var(--accent-dark);
+  color: #fff;
   font-weight: 600;
 }
-.btn.danger-text { background: none; border: none; color: var(--danger); }
+.btn.danger-text { background: none; border: none; box-shadow: none; color: var(--danger); }
 .btn:active { opacity: 0.8; }
 .btn[hidden] { display: none; }
 
@@ -113,14 +128,17 @@ html, body {
   background: var(--panel);
   border-radius: var(--radius);
   padding: 12px 16px;
+  box-shadow: var(--shadow);
 }
+.confirm-row .label-wrap { display: flex; flex-direction: column; gap: 2px; }
 .confirm-row .label { color: var(--text-dim); font-size: 0.9rem; }
+.confirm-row .prev { color: var(--text-dim); font-size: 0.72rem; }
 .confirm-row input {
   width: 7em;
   text-align: right;
   font-size: 1.2rem;
   font-variant-numeric: tabular-nums;
-  background: none; border: none; color: var(--text);
+  background: none; border: none; color: var(--lcd-text);
   border-bottom: 1px dashed var(--panel-2);
   outline: none;
 }
@@ -128,12 +146,76 @@ html, body {
 .confirm-row .unit { color: var(--text-dim); font-size: 0.8rem; width: 3em; }
 .confirm-row.missing input { border-bottom-color: var(--danger); }
 
-/* ---- 履歴画面 ---- */
+/* ---- 履歴画面: サマリーカード ---- */
+.summary-card {
+  background: var(--panel);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  box-shadow: var(--shadow);
+  margin: 12px 0;
+}
+.summary-card .date { color: var(--text-dim); font-size: 0.8rem; }
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px 8px;
+  margin-top: 10px;
+}
+.summary-cell .label { display: block; color: var(--text-dim); font-size: 0.72rem; }
+.summary-cell .value {
+  color: var(--lcd-text);
+  font-size: 1.05rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.summary-cell .unit { color: var(--text-dim); font-size: 0.7rem; margin-left: 2px; }
+.summary-cell .delta { color: var(--text-dim); font-size: 0.75rem; margin-left: 6px; }
+.summary-cell.main { grid-column: 1 / -1; }
+.summary-cell.main .value {
+  display: inline-block;
+  font-size: 1.9rem;
+  background: var(--lcd-bg);
+  border: 1px solid var(--lcd-border);
+  border-radius: 10px;
+  padding: 2px 14px;
+}
+
+/* ---- 履歴画面: 推移グラフ ---- */
+.trend-card {
+  background: var(--panel);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  box-shadow: var(--shadow);
+  margin-bottom: 12px;
+}
+.trend-card .metric-chips { margin: 0 0 8px; min-height: 0; }
+.trend-periods { display: flex; gap: 6px; margin-bottom: 6px; }
+.trend-period {
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--panel-2);
+  background: none;
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  font-family: inherit;
+  cursor: pointer;
+}
+.trend-period.selected {
+  background: var(--accent-dark);
+  border-color: var(--accent-dark);
+  color: #fff;
+  font-weight: 600;
+}
+.trend-chart svg { width: 100%; height: auto; display: block; }
+.trend-empty { color: var(--text-dim); font-size: 0.85rem; text-align: center; padding: 24px 0; }
+
+/* ---- 履歴画面: リスト ---- */
 .history-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
 .history-item {
   background: var(--panel);
   border-radius: var(--radius);
   padding: 12px 16px;
+  box-shadow: var(--shadow);
 }
 .history-item .date { color: var(--text-dim); font-size: 0.8rem; }
 .history-item .values {
@@ -156,6 +238,7 @@ html, body {
   padding: 28px;
   text-align: center;
   color: var(--text-dim);
+  background: var(--panel);
   margin-bottom: 12px;
 }
 .file-drop input { display: none; }
@@ -165,7 +248,7 @@ html, body {
 #view-import .capture-status { position: static; margin: 8px 0; text-shadow: none; color: var(--text-dim); }
 
 /* ---- 情報画面 ---- */
-#view-about h3 { font-size: 1rem; margin: 18px 0 6px; color: var(--accent); }
+#view-about h3 { font-size: 1rem; margin: 18px 0 6px; color: var(--accent-dark); }
 .about-text { color: var(--text-dim); font-size: 0.9rem; line-height: 1.7; }
 .about-list {
   list-style: none;
@@ -178,16 +261,17 @@ html, body {
   font-size: 0.85rem;
   line-height: 1.7;
   color: var(--text-dim);
+  box-shadow: var(--shadow);
 }
 .about-list strong { color: var(--text); }
-#view-about a { color: var(--accent); }
+#view-about a { color: var(--accent-dark); }
 .bmc-link {
   display: block;
   margin-top: 10px;
   padding: 14px;
   border-radius: var(--radius);
   background: #ffdd00;
-  color: #0f172a !important;
+  color: #2c3136 !important;
   font-weight: 600;
   text-align: center;
   text-decoration: none;
@@ -198,7 +282,7 @@ html, body {
   position: fixed;
   bottom: 0; left: 0; right: 0;
   display: flex;
-  background: rgba(15, 23, 42, 0.92);
+  background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(10px);
   border-top: 1px solid var(--panel-2);
   padding-bottom: env(safe-area-inset-bottom);
@@ -211,4 +295,4 @@ html, body {
   padding: 14px 0;
   cursor: pointer;
 }
-.tab.active { color: var(--accent); font-weight: 600; }
+.tab.active { color: var(--accent-dark); font-weight: 600; }
