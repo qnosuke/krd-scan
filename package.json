@@ -2,6 +2,7 @@
   "name": "krd-scan",
   "private": true,
   "version": "0.1.0",
+  "license": "MIT",
   "type": "module",
   "description": "オムロン カラダスキャン KRD-203 の測定値をカメラで読み取ってCSV記録するPWA",
   "scripts": {

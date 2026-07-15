@@ -63,3 +63,7 @@ python3 scripts/gen-icons.py  # アイコン再生成
 - 7セグ認識エンジン: [src/sevenseg.js](src/sevenseg.js)（依存ライブラリなし）
 - 項目割り当てロジック: [src/session.js](src/session.js)
 - 機器の表示仕様: [docs/spec.md](docs/spec.md)
+
+## ライセンス
+
+[MIT](LICENSE)
