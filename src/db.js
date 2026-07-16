@@ -41,6 +41,17 @@ export async function addMeasurement(record) {
   return tx(db, 'readwrite', (store) => store.add(record));
 }
 
+/**
+ * 複数レコードを1トランザクションで追加（CSVインポート用）。
+ * 途中で失敗した場合はトランザクションごと abort され、部分書き込みは起きない。
+ */
+export async function addMeasurements(records) {
+  const db = await openDB();
+  return tx(db, 'readwrite', (store) => {
+    for (const r of records) store.add(r);
+  });
+}
+
 /** 新しい順で全件取得 */
 export async function listMeasurements() {
   const db = await openDB();
