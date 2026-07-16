@@ -1,8 +1,8 @@
 import { METRICS } from './metrics.js';
 
-const HEADER = ['日時', ...METRICS.map((m) => (m.unit ? `${m.label}(${m.unit})` : m.label))];
+export const HEADER = ['日時', ...METRICS.map((m) => (m.unit ? `${m.label}(${m.unit})` : m.label))];
 
-function formatDate(iso) {
+export function formatDate(iso) {
   const d = new Date(iso);
   const pad = (n) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
