@@ -1,8 +1,9 @@
 import { METRICS, metricByKey } from '../metrics.js';
-import { listMeasurements, deleteMeasurement } from '../db.js';
+import { listMeasurements, deleteMeasurement, addMeasurements } from '../db.js';
 import { exportCsv } from '../csv.js';
 import { computeDelta, formatDelta } from '../trend.js';
 import { buildChart, PERIODS, PAD, CHART_W } from '../chart.js';
+import { parseCsvText, dedupeByDateKey } from '../csvImport.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -14,6 +15,8 @@ export function createHistoryView() {
   const chartEl = document.getElementById('trend-chart');
   const listEl = document.getElementById('history-list');
   const btnExport = document.getElementById('btn-export-csv');
+  const btnImport = document.getElementById('btn-import-csv');
+  const importFileEl = document.getElementById('import-csv-file');
 
   let records = [];
   let selectedKey = 'weight';
@@ -250,6 +253,47 @@ export function createHistoryView() {
       return;
     }
     await exportCsv(all);
+  });
+
+  btnImport.addEventListener('click', () => importFileEl.click());
+
+  importFileEl.addEventListener('change', async () => {
+    const file = importFileEl.files?.[0];
+    importFileEl.value = ''; // 同じファイルをもう一度選べるようにする
+    if (!file) return;
+
+    const parsed = parseCsvText(await file.text());
+    if (!parsed.ok) {
+      alert(`読み込めませんでした。\n${parsed.error.line}行目: ${parsed.error.reason}`);
+      return;
+    }
+    if (parsed.records.length === 0) {
+      alert('取り込める記録がありませんでした');
+      return;
+    }
+
+    const existing = await listMeasurements();
+    const { fresh, skipped } = dedupeByDateKey(parsed.records, existing);
+    if (fresh.length === 0) {
+      alert(`すべて登録済みでした（${skipped}件重複）`);
+      return;
+    }
+
+    const msg =
+      skipped > 0
+        ? `${fresh.length}件を追加します（${skipped}件は登録済みのためスキップ）。よろしいですか？`
+        : `${fresh.length}件を追加します。よろしいですか？`;
+    if (!confirm(msg)) return;
+
+    try {
+      await addMeasurements(fresh);
+    } catch {
+      // 1トランザクションなので部分書き込みは起きていない
+      alert('保存に失敗しました。もう一度お試しください');
+      return;
+    }
+    await render();
+    alert(`${fresh.length}件を追加しました`);
   });
 
   return {

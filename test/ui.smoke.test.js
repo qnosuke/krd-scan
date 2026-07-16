@@ -51,4 +51,14 @@ describe('UI初期化', () => {
     document.querySelector('.tab[data-view="view-capture"]').click();
     expect(document.getElementById('view-capture').hidden).toBe(false);
   });
+
+  it('履歴タブにCSV読み込みボタンとファイル入力がある', () => {
+    const btn = document.getElementById('btn-import-csv');
+    const input = document.getElementById('import-csv-file');
+    expect(btn).not.toBeNull();
+    expect(btn.textContent).toBe('CSVを読み込む');
+    expect(btn.classList.contains('primary')).toBe(false); // 控えめボタン
+    expect(input).not.toBeNull();
+    expect(input.accept).toContain('csv');
+  });
 });
