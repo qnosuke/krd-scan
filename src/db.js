@@ -32,6 +32,9 @@ function tx(db, mode, fn) {
     const result = fn(store);
     t.oncomplete = () => resolve(result?.result ?? result);
     t.onerror = () => reject(t.error);
+    // error イベントなしで abort されるケース（明示的 abort や容量超過の一部）で
+    // Promise が永久に pending にならないようにする
+    t.onabort = () => reject(t.error ?? new DOMException('aborted', 'AbortError'));
   });
 }
 

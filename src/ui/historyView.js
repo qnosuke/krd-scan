@@ -262,7 +262,16 @@ export function createHistoryView() {
     importFileEl.value = ''; // 同じファイルをもう一度選べるようにする
     if (!file) return;
 
-    const parsed = parseCsvText(await file.text());
+    let text;
+    try {
+      text = await file.text();
+    } catch {
+      // 選択後にファイルが移動・削除されると読み取りに失敗する（iOS のクラウド経由など）
+      alert('ファイルを読み込めませんでした。もう一度お試しください');
+      return;
+    }
+
+    const parsed = parseCsvText(text);
     if (!parsed.ok) {
       alert(`読み込めませんでした。\n${parsed.error.line}行目: ${parsed.error.reason}`);
       return;
@@ -287,8 +296,9 @@ export function createHistoryView() {
 
     try {
       await addMeasurements(fresh);
-    } catch {
+    } catch (e) {
       // 1トランザクションなので部分書き込みは起きていない
+      console.error(e);
       alert('保存に失敗しました。もう一度お試しください');
       return;
     }
