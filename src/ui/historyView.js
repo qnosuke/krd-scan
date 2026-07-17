@@ -1,14 +1,17 @@
-import { METRICS, metricByKey } from '../metrics.js';
+import { METRICS, metricByKey, validateInput } from '../metrics.js';
 import { listMeasurements, deleteMeasurement, addMeasurements } from '../db.js';
 import { exportCsv } from '../csv.js';
-import { computeDelta, formatDelta } from '../trend.js';
+import { computeDelta, formatDelta, previousValue } from '../trend.js';
 import { buildChart, PERIODS, PAD, CHART_W } from '../chart.js';
 import { parseCsvText, dedupeByDateKey } from '../csvImport.js';
+import { GOAL_KEYS, loadGoals, saveGoals, goalStatus, formatGoalStatus } from '../goals.js';
+import { dateKeyOf, groupByDay, dailyLatest } from '../daily.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 export function createHistoryView() {
   const summaryEl = document.getElementById('history-summary');
+  const goalsEl = document.getElementById('history-goals');
   const trendCardEl = document.getElementById('trend-card');
   const metricsEl = document.getElementById('trend-metrics');
   const periodsEl = document.getElementById('trend-periods');
@@ -21,6 +24,7 @@ export function createHistoryView() {
   let records = [];
   let selectedKey = 'weight';
   let selectedPeriod = '1m';
+  let editingGoals = false;
 
   function formatDate(iso) {
     const d = new Date(iso);
@@ -74,8 +78,148 @@ export function createHistoryView() {
       grid.appendChild(cell);
     }
 
-    card.append(date, grid);
+    // 「今日は測定済みか」の視覚フィードバック
+    const measuredToday = dateKeyOf(latest.measuredAt) === dateKeyOf(new Date().toISOString());
+    const today = document.createElement('div');
+    today.className = 'today-chip' + (measuredToday ? ' done' : '');
+    today.textContent = measuredToday ? '✓ 今日は測定済み' : '今日はまだ測定していません';
+
+    card.append(today, date, grid);
     summaryEl.appendChild(card);
+  }
+
+  /* ---- 目標カード ---- */
+
+  function renderGoals() {
+    goalsEl.innerHTML = '';
+    const goals = loadGoals();
+    const hasGoals = GOAL_KEYS.some((k) => goals[k] != null);
+
+    const card = document.createElement('div');
+    card.className = 'goal-card';
+
+    if (editingGoals) {
+      const title = document.createElement('div');
+      title.className = 'goal-title';
+      title.textContent = '🎯 目標';
+
+      const form = document.createElement('div');
+      form.className = 'goal-form';
+      const inputs = {};
+      for (const key of GOAL_KEYS) {
+        const m = metricByKey(key);
+        const row = document.createElement('label');
+        row.className = 'goal-edit-row';
+
+        const label = document.createElement('span');
+        label.className = 'label';
+        label.textContent = m.label;
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.inputMode = 'decimal';
+        input.value = goals[key] ?? '';
+        input.placeholder = '未設定';
+
+        const unit = document.createElement('span');
+        unit.className = 'unit';
+        unit.textContent = m.unit;
+
+        row.append(label, input, unit);
+        form.appendChild(row);
+        inputs[key] = input;
+      }
+
+      const actions = document.createElement('div');
+      actions.className = 'goal-actions';
+
+      const btnSave = document.createElement('button');
+      btnSave.type = 'button';
+      btnSave.className = 'btn primary';
+      btnSave.textContent = '保存';
+      btnSave.addEventListener('click', () => {
+        const next = {};
+        for (const key of GOAL_KEYS) {
+          const m = metricByKey(key);
+          const raw = inputs[key].value.trim();
+          if (raw === '') continue; // 空 = その項目の目標を解除
+          if (!validateInput(raw, m)) {
+            alert(`「${m.label}」の目標値 ${raw} が範囲外です（${m.min}〜${m.max}）`);
+            inputs[key].focus();
+            return;
+          }
+          next[key] = raw;
+        }
+        saveGoals(next);
+        editingGoals = false;
+        renderGoals();
+      });
+
+      const btnCancel = document.createElement('button');
+      btnCancel.type = 'button';
+      btnCancel.className = 'btn';
+      btnCancel.textContent = 'キャンセル';
+      btnCancel.addEventListener('click', () => {
+        editingGoals = false;
+        renderGoals();
+      });
+
+      actions.append(btnSave, btnCancel);
+      card.append(title, form, actions);
+    } else if (!hasGoals) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'link-btn';
+      btn.textContent = '🎯 目標を設定する';
+      btn.addEventListener('click', () => {
+        editingGoals = true;
+        renderGoals();
+      });
+      card.appendChild(btn);
+    } else {
+      const head = document.createElement('div');
+      head.className = 'goal-head';
+
+      const title = document.createElement('span');
+      title.className = 'goal-title';
+      title.textContent = '🎯 目標';
+
+      const btnEdit = document.createElement('button');
+      btnEdit.type = 'button';
+      btnEdit.className = 'link-btn';
+      btnEdit.textContent = '編集';
+      btnEdit.addEventListener('click', () => {
+        editingGoals = true;
+        renderGoals();
+      });
+
+      head.append(title, btnEdit);
+      card.appendChild(head);
+
+      for (const key of GOAL_KEYS) {
+        if (goals[key] == null) continue;
+        const m = metricByKey(key);
+        const row = document.createElement('div');
+        row.className = 'goal-row';
+
+        const label = document.createElement('span');
+        label.textContent = `${m.label} 目標 ${goals[key]}${m.unit}`;
+        row.appendChild(label);
+
+        // 直近の測定値（値がある最新レコード）との差。記録がなければ目標値のみ表示
+        const st = goalStatus(previousValue(records, key), goals[key]);
+        const statusText = formatGoalStatus(st, m);
+        if (statusText != null) {
+          const status = document.createElement('span');
+          status.className = 'goal-status' + (st.achieved ? ' achieved' : '');
+          status.textContent = statusText;
+          row.appendChild(status);
+        }
+        card.appendChild(row);
+      }
+    }
+
+    goalsEl.appendChild(card);
   }
 
   /* ---- 推移グラフ ---- */
@@ -128,7 +272,7 @@ export function createHistoryView() {
     chartEl.innerHTML = '';
     const metric = metricByKey(selectedKey);
     const period = PERIODS.find((p) => p.key === selectedPeriod);
-    const chart = buildChart(records, selectedKey, {
+    const chart = buildChart(dailyLatest(records), selectedKey, {
       days: period.days,
       decimals: metric.decimals,
     });
@@ -194,7 +338,21 @@ export function createHistoryView() {
     chartEl.appendChild(svg);
   }
 
-  /* ---- 履歴リスト（従来どおり） ---- */
+  /* ---- 履歴リスト（日付グループ表示） ---- */
+
+  function formatTime(iso) {
+    const d = new Date(iso);
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
+  const DAY_NAMES = ['日', '月', '火', '水', '木', '金', '土'];
+
+  function formatDayHeading(group) {
+    const d = new Date(group.latest.measuredAt);
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())}（${DAY_NAMES[d.getDay()]}）・${group.records.length}件`;
+  }
 
   function renderList() {
     listEl.innerHTML = '';
@@ -205,34 +363,41 @@ export function createHistoryView() {
       listEl.appendChild(p);
       return;
     }
-    for (const r of records) {
-      const item = document.createElement('div');
-      item.className = 'history-item';
+    for (const group of groupByDay(records)) {
+      const heading = document.createElement('div');
+      heading.className = 'history-day';
+      heading.textContent = formatDayHeading(group);
+      listEl.appendChild(heading);
 
-      const date = document.createElement('div');
-      date.className = 'date';
-      date.textContent = formatDate(r.measuredAt);
+      for (const r of group.records) {
+        const item = document.createElement('div');
+        item.className = 'history-item';
 
-      const values = document.createElement('div');
-      values.className = 'values';
-      for (const m of METRICS) {
-        if (r[m.key] == null || r[m.key] === '') continue;
-        const span = document.createElement('span');
-        span.textContent = `${m.label} ${r[m.key]}${m.unit}`;
-        values.appendChild(span);
+        const date = document.createElement('div');
+        date.className = 'date';
+        date.textContent = formatTime(r.measuredAt);
+
+        const values = document.createElement('div');
+        values.className = 'values';
+        for (const m of METRICS) {
+          if (r[m.key] == null || r[m.key] === '') continue;
+          const span = document.createElement('span');
+          span.textContent = `${m.label} ${r[m.key]}${m.unit}`;
+          values.appendChild(span);
+        }
+
+        const del = document.createElement('button');
+        del.className = 'delete';
+        del.textContent = 'この記録を削除';
+        del.addEventListener('click', async () => {
+          if (!confirm(`${formatDate(r.measuredAt)} の記録を削除しますか？`)) return;
+          await deleteMeasurement(r.id);
+          render();
+        });
+
+        item.append(date, values, del);
+        listEl.appendChild(item);
       }
-
-      const del = document.createElement('button');
-      del.className = 'delete';
-      del.textContent = 'この記録を削除';
-      del.addEventListener('click', async () => {
-        if (!confirm(`${formatDate(r.measuredAt)} の記録を削除しますか？`)) return;
-        await deleteMeasurement(r.id);
-        render();
-      });
-
-      item.append(date, values, del);
-      listEl.appendChild(item);
     }
   }
 
@@ -240,6 +405,7 @@ export function createHistoryView() {
     records = await listMeasurements();
     trendCardEl.hidden = records.length === 0;
     renderSummary();
+    renderGoals();
     renderMetricChips();
     renderPeriodButtons();
     renderChart();

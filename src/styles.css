@@ -230,6 +230,62 @@ button.chip { cursor: pointer; }
 }
 .history-empty { color: var(--text-dim); text-align: center; padding: 32px 0; }
 
+/* ---- 履歴画面: 目標カード ---- */
+.goal-card {
+  background: var(--panel);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  box-shadow: var(--shadow);
+  margin-bottom: 12px;
+}
+.goal-head { display: flex; justify-content: space-between; align-items: center; }
+.goal-title { font-size: 0.85rem; font-weight: 600; }
+.link-btn {
+  background: none; border: none; padding: 4px 0;
+  color: var(--accent-dark); font-size: 0.85rem; font-family: inherit;
+  cursor: pointer; text-decoration: underline;
+}
+.goal-row {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-top: 8px; font-size: 0.9rem; font-variant-numeric: tabular-nums;
+}
+.goal-status { color: var(--text-dim); font-size: 0.85rem; }
+.goal-status.achieved { color: var(--ok); font-weight: 600; }
+.goal-form { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.goal-edit-row { display: flex; align-items: center; gap: 8px; }
+.goal-edit-row .label { width: 5em; color: var(--text-dim); font-size: 0.85rem; }
+.goal-edit-row input {
+  flex: 1; font-size: 1rem; font-family: inherit;
+  font-variant-numeric: tabular-nums;
+  background: none; border: none; color: var(--lcd-text);
+  border-bottom: 1px dashed var(--panel-2); outline: none;
+}
+.goal-edit-row input:focus { border-bottom-color: var(--accent); }
+.goal-edit-row .unit { color: var(--text-dim); font-size: 0.8rem; width: 3em; }
+.goal-actions { display: flex; gap: 10px; margin-top: 12px; }
+
+/* ---- 履歴画面: 今日チップ・日付見出し ---- */
+.today-chip {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 0.75rem;
+  background: var(--panel-2);
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+.today-chip.done {
+  background: var(--lcd-bg);
+  border: 1px solid var(--lcd-border);
+  color: var(--lcd-text);
+}
+.history-day {
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin: 8px 0 -2px;
+}
+
 /* ---- 取り込み画面 ---- */
 .file-drop {
   display: block;

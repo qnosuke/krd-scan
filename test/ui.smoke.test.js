@@ -61,4 +61,8 @@ describe('UI初期化', () => {
     expect(input).not.toBeNull();
     expect(input.accept).toContain('csv');
   });
+
+  it('履歴タブに目標カード用のコンテナがある', () => {
+    expect(document.getElementById('history-goals')).not.toBeNull();
+  });
 });
