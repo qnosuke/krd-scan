@@ -65,4 +65,23 @@ describe('UI初期化', () => {
   it('履歴タブに目標カード用のコンテナがある', () => {
     expect(document.getElementById('history-goals')).not.toBeNull();
   });
+
+  it('計測タブに手入力リンクがある', () => {
+    const btn = document.getElementById('btn-manual-entry');
+    expect(btn).not.toBeNull();
+    expect(btn.textContent).toContain('手入力');
+  });
+
+  it('手入力リンクで確認画面が手入力モード（日時入力つき）で開く', async () => {
+    document.getElementById('btn-manual-entry').click();
+    expect(document.getElementById('view-confirm').hidden).toBe(false);
+    expect(document.getElementById('confirm-title').textContent).toBe('測定値の手入力');
+    // render は async（前回値の取得を待つ）なのでマイクロタスクを流す
+    await new Promise((r) => setTimeout(r, 0));
+    const dt = document.querySelector('#confirm-list .confirm-datetime input');
+    expect(dt).not.toBeNull();
+    expect(dt.value).not.toBe('');
+    // 計測タブへ戻す（後続テストへの影響を避ける）
+    document.querySelector('.tab[data-view="view-capture"]').click();
+  });
 });

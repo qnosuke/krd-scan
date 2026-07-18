@@ -28,12 +28,15 @@
         <button id="btn-capture-start" class="btn primary">読み取り開始</button>
         <button id="btn-capture-finish" class="btn" hidden>ここで終了して確認</button>
       </div>
+      <p class="manual-entry">
+        <button id="btn-manual-entry" class="link-btn" type="button">カメラを使わず手入力で記録する</button>
+      </p>
     </section>
 
     <!-- 確認・修正画面 -->
     <section id="view-confirm" class="view" hidden>
-      <h2>測定結果の確認</h2>
-      <p class="note">読み間違いがないか確認してください。タップで修正できます。</p>
+      <h2 id="confirm-title">測定結果の確認</h2>
+      <p id="confirm-note" class="note">読み間違いがないか確認してください。タップで修正できます。</p>
       <div id="confirm-list" class="confirm-list"></div>
       <div class="confirm-actions">
         <button id="btn-save" class="btn primary">保存する</button>

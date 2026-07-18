@@ -99,6 +99,8 @@ button.chip { cursor: pointer; }
   display: flex; flex-direction: column; gap: 10px; margin-top: 8px;
 }
 
+.manual-entry { text-align: center; margin-top: 12px; }
+
 /* ---- ボタン ---- */
 .btn {
   appearance: none;
@@ -145,6 +147,17 @@ button.chip { cursor: pointer; }
 .confirm-row input:focus { border-bottom-color: var(--accent); }
 .confirm-row .unit { color: var(--text-dim); font-size: 0.8rem; width: 3em; }
 .confirm-row.missing input { border-bottom-color: var(--danger); }
+
+.confirm-datetime {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 4px;
+  border-bottom: 1px solid var(--panel-2);
+}
+.confirm-datetime .label { color: var(--text-dim); font-size: 0.85rem; width: 5em; }
+.confirm-datetime input {
+  flex: 1; font-family: inherit; font-size: 0.95rem;
+  background: none; border: none; color: var(--text); outline: none;
+}
 
 /* ---- 履歴画面: サマリーカード ---- */
 .summary-card {

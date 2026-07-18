@@ -4,12 +4,30 @@ import { previousValue } from '../trend.js';
 
 export function createConfirmView({ onSaved, onDiscarded }) {
   const listEl = document.getElementById('confirm-list');
+  const titleEl = document.getElementById('confirm-title');
+  const noteEl = document.getElementById('confirm-note');
   const btnSave = document.getElementById('btn-save');
   const btnDiscard = document.getElementById('btn-discard');
 
   let inputs = {}; // key → input要素
+  let manualMode = false;
+  let dateInput = null;
 
-  async function render(results) {
+  // datetime-local の value 形式（ローカル時刻の YYYY-MM-DDTHH:MM）
+  function nowLocalValue() {
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
+  async function render(results, { manual = false } = {}) {
+    manualMode = manual;
+    dateInput = null;
+    titleEl.textContent = manual ? '測定値の手入力' : '測定結果の確認';
+    noteEl.textContent = manual
+      ? '測定した値を入力してください。空欄は未計測として保存されます。'
+      : '読み間違いがないか確認してください。タップで修正できます。';
+
     // 前回値: 誤読チェックにも効く（前回と大きく違う値は読み間違いの可能性）
     const prev = {};
     try {
@@ -21,6 +39,20 @@ export function createConfirmView({ onSaved, onDiscarded }) {
 
     listEl.innerHTML = '';
     inputs = {};
+
+    if (manual) {
+      const row = document.createElement('div');
+      row.className = 'confirm-datetime';
+      const label = document.createElement('span');
+      label.className = 'label';
+      label.textContent = '日時';
+      dateInput = document.createElement('input');
+      dateInput.type = 'datetime-local';
+      dateInput.value = nowLocalValue();
+      row.append(label, dateInput);
+      listEl.appendChild(row);
+    }
+
     for (const m of METRICS) {
       const row = document.createElement('div');
       row.className = 'confirm-row' + (results[m.key] ? '' : ' missing');
@@ -60,7 +92,18 @@ export function createConfirmView({ onSaved, onDiscarded }) {
   }
 
   btnSave.addEventListener('click', async () => {
-    const record = { measuredAt: new Date().toISOString() };
+    let measuredAt;
+    if (manualMode) {
+      const t = dateInput?.value ? new Date(dateInput.value) : null;
+      if (!t || Number.isNaN(t.getTime())) {
+        alert('日時を入力してください');
+        return;
+      }
+      measuredAt = t.toISOString();
+    } else {
+      measuredAt = new Date().toISOString();
+    }
+    const record = { measuredAt };
     let hasValue = false;
     for (const m of METRICS) {
       const raw = inputs[m.key]?.value.trim() ?? '';
@@ -85,8 +128,8 @@ export function createConfirmView({ onSaved, onDiscarded }) {
   });
 
   return {
-    show(results) {
-      render(results ?? {});
+    show(results, opts) {
+      render(results ?? {}, opts);
     },
     hide() {},
   };

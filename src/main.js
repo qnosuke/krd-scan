@@ -43,6 +43,11 @@ views['view-import'] = createImportView({
 });
 views['view-about'] = { show() {}, hide() {} }; // 静的ページ
 
+// カメラが使えない場面用: 確認画面を手入力モードで開く
+document.getElementById('btn-manual-entry').addEventListener('click', () => {
+  switchView('view-confirm', {}, { manual: true });
+});
+
 document.querySelectorAll('.tab').forEach((tab) => {
   tab.addEventListener('click', () => switchView(tab.dataset.view));
 });
