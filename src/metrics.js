@@ -37,3 +37,19 @@ export function validateInput(text, metric) {
   if (text === '' || text == null) return true;
   return matchesMetric(String(text), metric);
 }
+
+/**
+ * 人が手で入力・修正した値の検証。OCR結果と違い小数点の有無で項目を判別する
+ * 必要がないため、小数桁数は問わない（体重に "63" と入力しても有効）。
+ */
+export function validateHumanInput(text, metric) {
+  if (text === '' || text == null) return true;
+  if (!/^\d+(\.\d+)?$/.test(String(text))) return false;
+  const value = Number(text);
+  return value >= metric.min && value <= metric.max;
+}
+
+/** 手入力値を保存・表示用の固定小数桁フォーマットに正規化する。 */
+export function normalizeHumanInput(text, metric) {
+  return Number(text).toFixed(metric.decimals);
+}

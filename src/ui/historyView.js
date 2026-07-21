@@ -1,4 +1,4 @@
-import { METRICS, metricByKey, validateInput } from '../metrics.js';
+import { METRICS, metricByKey, validateHumanInput, normalizeHumanInput } from '../metrics.js';
 import { listMeasurements, deleteMeasurement, addMeasurements } from '../db.js';
 import { exportCsv } from '../csv.js';
 import { computeDelta, formatDelta, previousValue } from '../trend.js';
@@ -143,12 +143,12 @@ export function createHistoryView() {
           const m = metricByKey(key);
           const raw = inputs[key].value.trim();
           if (raw === '') continue; // 空 = その項目の目標を解除
-          if (!validateInput(raw, m)) {
+          if (!validateHumanInput(raw, m)) {
             alert(`「${m.label}」の目標値 ${raw} が範囲外です（${m.min}〜${m.max}）`);
             inputs[key].focus();
             return;
           }
-          next[key] = raw;
+          next[key] = normalizeHumanInput(raw, m);
         }
         saveGoals(next);
         editingGoals = false;
